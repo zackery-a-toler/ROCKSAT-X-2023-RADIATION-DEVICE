@@ -1,0 +1,114 @@
+#include <SPI.h>
+#include <SD.h>
+
+const int chipSelect = BUILTIN_SDCARD;
+bool writeToSD = true;
+
+unsigned long lastPrintTime = 0;
+unsigned int loopCounter = 0;
+int pulseCount1 = 0;
+bool currentSignal1 = 0;
+bool previousSignal1 = 0;
+
+int pulseCount2 = 0;
+bool currentSignal2 = 0;
+bool previousSignal2 = 0;
+
+int pulseCount3 = 0;
+bool currentSignal3 = 0;
+bool previousSignal3 = 0;
+
+int pulseCount4 = 0;
+bool currentSignal4 = 0;
+bool previousSignal4 = 0;
+
+//void printHeader() prints a "header" at the beginning of every run. Modify headerString to change what it prints.
+void printHeader() {
+  String headerString = String("\n\n----------NEW DATA\n----------\n\nTIME(millis)\tLOOP ITERATION\tSBM 20\tLND 713\tLND 712\tLND 712");
+
+  if (writeToSD) {
+    File headerFile = SD.open("ROCKSAT-X_2023_geiger_data.txt", FILE_WRITE);//Change file name here and in printData()
+    if (headerFile) {
+      headerFile.println(headerString);
+      headerFile.close();
+    } else {
+      Serial.println("Error openening file for writing");
+    }
+  } else {
+    Serial.println(headerString);
+  }
+}
+
+void printData() {
+  String dataString = String(millis()) + "\t" + String(loopCounter) + "\t" + String(pulseCount1) + "\t" + String(pulseCount2) + "\t" + String(pulseCount3) + "\t" + String(pulseCount4);
+
+  if (writeToSD) {
+    File dataFile = SD.open("ROCKSAT-X_2023_geiger_data.txt", FILE_WRITE);//Change file name here and in printHeader()
+    if (dataFile) {
+      dataFile.println(dataString);
+      dataFile.close();
+    } else {
+      Serial.println("Error opening file for writing");
+    }
+  } else {
+    Serial.println(dataString);
+  }
+}
+
+void setup() {
+  pinMode(33, INPUT);
+  pinMode(34, INPUT);
+  pinMode(35, INPUT);
+  pinMode(36, INPUT);
+
+  if (writeToSD) {
+    Serial.begin(9600);
+    Serial.print("Initializing SD card...");
+    
+    if (!SD.begin(chipSelect)) {
+      Serial.println("Card failed or not present.");
+      return;
+    }
+    Serial.println("Card initialized.");
+  } else
+    Serial.begin(9600);
+  printHeader();
+};
+
+void loop() {
+  loopCounter = loopCounter + 1;
+
+  currentSignal1 = digitalRead(33);
+  if (currentSignal1 == 1 && previousSignal1 == 0) {
+    pulseCount1 = pulseCount1 + 1;
+  }
+  previousSignal1 = currentSignal1;
+  
+  currentSignal2 = digitalRead(34);
+  if (currentSignal2 == 1 && previousSignal2 == 0) {
+    pulseCount2 = pulseCount2 + 1;
+  }
+  previousSignal2 = currentSignal2;
+
+  currentSignal3 = digitalRead(35);
+  if (currentSignal3 == 1 && previousSignal3 == 0) {
+    pulseCount3 = pulseCount3 + 1;
+  }
+  previousSignal3 = currentSignal3;
+
+  currentSignal4 = digitalRead(36);
+  if (currentSignal4 == 1 && previousSignal4 == 0) {
+    pulseCount4 = pulseCount4 + 1;
+  }
+  previousSignal4 = currentSignal4;
+
+  if (millis() - lastPrintTime >= 100) {
+    printData();
+    lastPrintTime = millis();
+    loopCounter = 0;
+    pulseCount1 = 0;
+    pulseCount2 = 0;
+    pulseCount3 = 0;
+    pulseCount4 = 0;
+  }
+};
